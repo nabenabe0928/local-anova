@@ -69,11 +69,14 @@ $$
 $$
 
 $$
-\sigma_{\mathrm{old}}^2 = \frac{1}{2L}\int_{-L}^{L} (g(x) - \mu)^2 dx = \frac{1}{2L} \biggl(\frac{2}{5} + 2(L - 1) \biggr) -\mu^2 = \frac{4}{3}\biggl( \frac{2}{5L} - \frac{1}{3L^2} \biggr).
+\sigma_{\mathrm{old}}^2 = \frac{1}{2L}\int_{-L}^{L} (g(x) - \mu)^2 dx = \frac{1}{2L} \biggl(\frac{2}{5} + 2(L - 1) \biggr) -\mu^2 = \frac{4}{3L}\biggl( \frac{2}{5} - \frac{1}{3L} \biggr).
 $$
 
 This example implies that clipping functions, which is quite conventional, is biased depending on the search space design, i.e. $L$ in this example.
 On the other hand, our method yields unbiased variance for any definitions of the search space.
+As can be seen in the figure below, the conventional version yields zero-variance as $L$ goes to the infinity.
+
+<img src="figs/length-vs-variance.png" alt="">
 
 ## Install
 
