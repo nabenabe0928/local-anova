@@ -38,27 +38,42 @@ The consequence of this change is to avoid the dilution caused by considering th
 
 For example, a straightforward way to measure the importance is to apply f-ANOVA to a function $g(x) := \min(f(x), y^\star)$ where $y^\star$ is a user-defined parameter.
 Here is an example using $f(x) = x^2$ and $y^\star = 1$.
-If we just compute the f-ANOVA, we calculate the following:
-$
-\mu_{\mathrm{old}} = \frac{1}{20}\int_{-10}^{10} g(x) dx = \frac{1}{20}\biggl(\frac{2}{3} + 18 \biggr) = \frac{14}{15}  \\
-\sigma_{\mathrm{old}}^2 = \frac{1}{20}\int_{-10}^{10} (g(x) - \mu)^2 dx = \frac{1}{20} \biggl(\frac{2}{5} + 18 \biggr) -\mu^2 = \frac{11}{225} \simeq 0.04889\dots.
-$
-However, if we apply the f-ANOVA only to the local space $[-1, 1]$, the result is completely different:
-$
-\mu_{\mathrm{new}} = \frac{1}{2}\int_{-1}^1 f(x) dx = \frac{1}{3} \\
-\sigma_{\mathrm{new}}^2 = \frac{1}{2}\int_{-1}^1 (f(x) - \mu)^2 dx = \frac{1}{5} -\mu^2 = \frac{4}{45} \simeq 0.08888\dots.
-$
-More generally, if we define the bounds as $[-L, L]$ where $L > 1$,
-it could be written as follows:
-$
-\mu_{\mathrm{old}} = \frac{1}{2L}\int_{-L}^{L} g(x) dx = \frac{1}{2L}\biggl(\frac{2}{3} + 2(L - 1) \biggr) = 1 - \frac{2}{3L}  \\
-\sigma_{\mathrm{old}}^2 = \frac{1}{2L}\int_{-L}^{L} (g(x) - \mu)^2 dx = \frac{1}{2L} \biggl(\frac{2}{5} + 2(L - 1) \biggr) -\mu^2 = \frac{4}{3}\biggl( \frac{2}{5L} - \frac{1}{3L^2} \biggr).
-$
-This example implies that clipping functions, which is quite conventional, is biased depending on the search space design, i.e. $L$ in this example.
-On the other hand, our method yields unbiased variance for any definitions of the search space.
-
 
 <img src="figs/toy-example-difference.png" alt="">
+
+If we just compute the f-ANOVA, we calculate the following:
+
+$$
+\mu_{\mathrm{old}} = \frac{1}{20}\int_{-10}^{10} g(x) dx = \frac{1}{20}\biggl(\frac{2}{3} + 18 \biggr) = \frac{14}{15}
+$$
+
+$$
+\sigma_{\mathrm{old}}^2 = \frac{1}{20}\int_{-10}^{10} (g(x) - \mu)^2 dx = \frac{1}{20} \biggl(\frac{2}{5} + 18 \biggr) -\mu^2 = \frac{11}{225} \simeq 0.04889\dots.
+$$
+
+However, if we apply the f-ANOVA only to the local space $[-1, 1]$, the result is completely different:
+
+$$
+\mu_{\mathrm{new}} = \frac{1}{2}\int_{-1}^1 f(x) dx = \frac{1}{3}
+$$
+
+$$
+\sigma_{\mathrm{new}}^2 = \frac{1}{2}\int_{-1}^1 (f(x) - \mu)^2 dx = \frac{1}{5} -\mu^2 = \frac{4}{45} \simeq 0.08888\dots.
+$$
+
+More generally, if we define the bounds as $[-L, L]$ where $L > 1$,
+it could be written as follows:
+
+$$
+\mu_{\mathrm{old}} = \frac{1}{2L}\int_{-L}^{L} g(x) dx = \frac{1}{2L}\biggl(\frac{2}{3} + 2(L - 1) \biggr) = 1 - \frac{2}{3L} 
+$$
+
+$$
+\sigma_{\mathrm{old}}^2 = \frac{1}{2L}\int_{-L}^{L} (g(x) - \mu)^2 dx = \frac{1}{2L} \biggl(\frac{2}{5} + 2(L - 1) \biggr) -\mu^2 = \frac{4}{3}\biggl( \frac{2}{5L} - \frac{1}{3L^2} \biggr).
+$$
+
+This example implies that clipping functions, which is quite conventional, is biased depending on the search space design, i.e. $L$ in this example.
+On the other hand, our method yields unbiased variance for any definitions of the search space.
 
 ## Install
 
@@ -76,5 +91,6 @@ $ python example.py
 
 ## Citation
 
-Please cite the following paper (later):
+Please cite the following paper:
+
 Paper under double-blind review.
