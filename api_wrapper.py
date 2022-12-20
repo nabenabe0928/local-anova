@@ -6,6 +6,7 @@ import pandas as pd
 from jahs_bench import Benchmark
 
 
+# https://ml.informatik.uni-freiburg.de/research-artifacts/jahs_bench_201/v1.1.0/assembled_surrogates.tar
 DATA_DIR = f"{os.environ['HOME']}/tabular_benchmarks/jahs_bench_data/"
 
 
