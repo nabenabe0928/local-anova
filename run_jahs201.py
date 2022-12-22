@@ -30,7 +30,7 @@ DATA_DIR = f"{os.environ['HOME']}/tabular_benchmarks/jahs_bench_data/"
 
 
 tasks = ["colorectal_histology", "cifar10", "fashion_mnist"]
-benchmark = jahs_bench.Benchmark(task="cifar10", download=False, save_dir=DATA_DIR)
+benchmark = jahs_bench.Benchmark(task=tasks[0], download=False, save_dir=DATA_DIR, metrics=["valid-acc"])
 
 config = benchmark.sample_config(random_state=42)
 results = benchmark(config, nepochs=200)
