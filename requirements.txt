@@ -2,3 +2,4 @@ numpy
 parzen-estimator
 scipy
 jahs-bench
+optuna
