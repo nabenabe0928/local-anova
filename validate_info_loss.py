@@ -1,6 +1,7 @@
+import json
 import time
 
-from typing import Dict
+from typing import Callable, Dict
 
 import numpy as np
 
@@ -12,8 +13,9 @@ from optuna.importance import FanovaImportanceEvaluator
 
 optuna.logging.set_verbosity(optuna.logging.CRITICAL)
 D = 4
-N = 10 ** 5
-gamma = 0.1
+GAMMA = 0.1
+N_SEEDS = 10
+N_GRIDS = 1000
 LB, UB = -5, 5
 
 
@@ -28,22 +30,25 @@ def func(X: np.ndarray) -> np.ndarray:
     return Z
 
 
-def analyze_by_ours(X: np.ndarray, order: np.ndarray) -> Dict[str, float]:
-    X_rounded = np.round(((X + LB) / (UB - LB)) * n_grids) / n_grids * (UB - LB) - LB
+def analyze_by_ours(X: np.ndarray, F: np.ndarray, *args, **kwargs) -> Dict[str, float]:
+    order = np.argsort(F)
+    n_samples = F.size
+    dx = np.linspace(LB, UB, N_GRIDS + 1)
+    X_rounded = np.round(((X + LB) / (UB - LB)) * N_GRIDS) / N_GRIDS * (UB - LB) - LB
     u = NumericalUniform(lb=LB, ub=UB)
     hpi_dict = {}
     for d in range(D):
         x = X_rounded[d]
-        pe = NumericalParzenEstimator(x[order[:int(gamma * N)]], lb=LB, ub=UB, compress=True)
+        pe = NumericalParzenEstimator(x[order[:int(GAMMA * n_samples)]], lb=LB, ub=UB, compress=True)
         U = u(dx)
         hpi = U @ ((pe(dx) / u(dx) - 1) ** 2)
-        hpi *= gamma ** 2 / np.sum(U)
+        hpi *= GAMMA ** 2 / np.sum(U)
         hpi_dict[f"x{d+1}"] = hpi
 
     return hpi_dict
 
 
-def analyze_by_optuna(X: np.ndarray, F: np.ndarray) -> None:
+def analyze_by_optuna(X: np.ndarray, F: np.ndarray, seed: int) -> Dict[str, float]:
     study = optuna.create_study()
     study.add_trials([
         optuna.trial.create_trial(
@@ -53,21 +58,56 @@ def analyze_by_optuna(X: np.ndarray, F: np.ndarray) -> None:
         )
         for xs, f in zip(X.T, F)
     ])
-    result = optuna.importance.get_param_importances(study, evaluator=FanovaImportanceEvaluator())
+    result = optuna.importance.get_param_importances(study, evaluator=FanovaImportanceEvaluator(seed=seed))
     return dict(result)
 
 
-if __name__ == "__main__":
-    n_grids = 10
-    dx = np.linspace(LB, UB, n_grids + 1)
-    # order = np.argsort(F)
-    # print(analyze_by_ours(X, order))
+def update(
+    x: np.ndarray,
+    f: np.ndarray,
+    size: int,
+    seed: int,
+    results: Dict,
+    analyze_fn: Callable,
+) -> None:
+    start = time.time()
+    result = analyze_fn(x, f, seed)
+    runtime = time.time() - start
+    result_str = {k: float(f"{v:.2e}") for k, v in result.items()}
+    print(f"Finish {size=}, {seed=} in {runtime:.2e} seconds with the result: {result_str}")
 
-    for seed in range(10):
+    for k, v in result.items():
+        results[size][k].append(v)
+
+    results[size]["runtime"].append(runtime)
+
+
+def validate(sizes: np.ndarray, analyze_fn: Callable) -> Dict:
+    results = {size: {k: [] for k in [f"x{d+1}" for d in range(D)] + ["runtime"]} for size in sizes}
+    for seed in range(N_SEEDS):
         rng = np.random.RandomState(seed)
-        X = rng.random((D, N)) * (UB - LB) + LB
+        X = rng.random((D, sizes[-1])) * (UB - LB) + LB
         F = func(X)
-        for size in [10, 3 * 10, 10 ** 2, 3 * 10 ** 2, 10 ** 3, 3 * 10 ** 3, 10 ** 4, 3 * 10 ** 4, 10 ** 5]:
-            start = time.time()
-            result = analyze_by_optuna(X[:size], F[:size])
-            print(f"Finish {size=}, {seed=} in {time.time() - start:.3e} seconds with the result: {result}")
+        for size in sizes:
+            assert size <= F.size
+            x, f = X[:, :size], F[:size]
+            update(x, f, size, seed, results, analyze_fn=analyze_fn)
+
+    return results
+
+
+def validate_ours() -> Dict:
+    P = 8
+    sizes = np.hstack([[10 ** i, 3 * 10 ** i] for i in range(1, P)] + [10 ** P])
+    return validate(sizes, analyze_by_ours)
+
+
+def validate_optuna() -> Dict:
+    P = 4
+    sizes = np.hstack([[10 ** i, 3 * 10 ** i] for i in range(1, P)] + [10 ** P])
+    return validate(sizes, analyze_by_optuna)
+
+
+if __name__ == "__main__":
+    results = validate_ours()
+    json.dump({str(k): v for k, v in results.items()}, open("validate-ours.json", "w"), indent=4)
