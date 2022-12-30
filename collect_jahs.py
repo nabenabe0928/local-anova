@@ -9,8 +9,8 @@ from api_wrapper import BenchmarkWrapper
 
 
 SEARCH_SPACE = dict(
-    LearningRate=(0.001, 0.01, 0.1, 1.0),
-    WeightDecay=(0.00001, 0.0001, 0.001, 0.01),
+    LearningRate=(0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1.0),
+    WeightDecay=(0.00001, 0.00003, 0.0001, 0.0003, 0.001, 0.003, 0.01),
     N=(1, 3, 5),
     W=(4, 8, 16),
     Activation=("ReLU", "Hardswish", "Mish"),
@@ -23,7 +23,7 @@ SEARCH_SPACE = dict(
     Op6=(0, 1, 2, 3, 4)
 )
 PARAM_NAMES = list(SEARCH_SPACE.keys())
-TASK_NAME = ["cifar10", "fashion_mnist", "colorectal_histology"][1]
+TASK_NAME = ["cifar10", "fashion_mnist", "colorectal_histology"][2]
 
 FIXED_CONFIGS = {p: [] for p in PARAM_NAMES}
 FIXED_CONFIGS[PARAM_NAMES[0]] = 0.0

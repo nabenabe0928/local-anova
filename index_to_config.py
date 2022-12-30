@@ -7,8 +7,8 @@ import pandas as pd
 
 
 SEARCH_SPACE = dict(
-    LearningRate=(0.001, 0.01, 0.1, 1.0),
-    WeightDecay=(0.00001, 0.0001, 0.001, 0.01),
+    LearningRate=(0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1.0),
+    WeightDecay=(0.00001, 0.00003, 0.0001, 0.0003, 0.001, 0.003, 0.01),
     N=(1, 3, 5),
     W=(4, 8, 16),
     Activation=("ReLU", "Hardswish", "Mish"),
