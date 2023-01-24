@@ -1,174 +1,100 @@
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, Tuple
 
 import numpy as np
 
-from parzen_estimator import NumericalParzenEstimator, NumericalUniform
+import pandas as pd
 
-from scipy.stats import rankdata
-
-
-ParzenEstimatorType = Union[NumericalParzenEstimator, NumericalUniform]
-
-
-def perason_divergence(
-    pe_local: ParzenEstimatorType,
-    pe_global: ParzenEstimatorType,
-    n_samples: int,
-    rng: np.random.RandomState,
-) -> float:
-    """
-    Compute the Pearson divergence by Monte-Carlo method.
-
-    Args:
-        pe_local (ParzenEstimatorType):
-            The Parzen estimator that implicitly defines a local space.
-        pe_global (ParzenEstimatorType):
-            The Parzen estimator that implicitly defines a global space.
-        n_samples (int):
-            The number of samples used for Monte-Carlo method.
-        rng (np.random.RandomState):
-            The random number generator.
-
-    Returns:
-        divergence (float):
-            Pearson divergence between pe_local and pe_global.
-            We omit gamma as this number is constant for all dimensions.
-    """
-    x = pe_global.sample(rng=rng, n_samples=n_samples)
-    # we omit (gamma^\prime / gamma) ** 2
-    return np.mean((pe_local(x) / pe_global(x) - 1) ** 2)
+from parzen_estimator import (
+    CategoricalParzenEstimator,
+    CategoricalUniform,
+    NumericalParzenEstimator,
+    NumericalUniform,
+)
 
 
-def global_hpi(
-    observations: Dict[str, np.ndarray],
-    bounds: Dict[str, Tuple[float, float]],
-    param_names: List[str],
-    obj_name: str,
-    gamma: float,
-    n_samples: int = 100,
-    minimize: bool = True,
-    seed: Optional[int] = None,
-) -> Dict[str, float]:
-    """
-    Compute the global hyperparameter importance.
-
-    Args:
-        observations (Dict[str, np.ndarray]):
-            Observations obtained by an HPO.
-            Objective function values must also be included.
-            observations[param name] = array of the observations in the param.
-        bounds (Dict[str, Tuple[float, float]]):
-            The lower/upper bounds of each param.
-            bounds[param name] = (lower bound of the param, upper bound of the param).
-        param_names (List[str]):
-            A list of hyperparameter names.
-        obj_name (str):
-            The name of the objective function.
-        gamma (float):
-            The quantile value that defines the target domain.
-        n_samples (int):
-            The number of samples used in Monte-Carlo method.
-        minimize (bool):
-            Whether the objective function is better when it is smaller.
-        seed (Optional[int]):
-            The seed for a random number generator.
-
-    Returns:
-        hpi_dict (Dict[str, float]):
-            The hyperparameter importance for each param.
-            hpi_dict[param name] = the importance of this param in the global space.
-    """
-    assert 0 < gamma <= 1
-    sign = 2 * minimize - 1
-    loss_vals = observations[obj_name] * sign
-    rank = rankdata(loss_vals)
-
-    rng = np.random.RandomState(seed)
-    N = loss_vals.size
-    gamma_set_mask = rank < N * gamma
-    hpi_dict: Dict[str, float] = {}
-    for param_name in param_names:
-        lb, ub = bounds[param_name]
-        params = observations[param_name]
-        u = NumericalUniform(lb=lb, ub=ub)
-        pe = NumericalParzenEstimator(samples=params[gamma_set_mask], lb=lb, ub=ub)
-        hpi_dict[param_name] = perason_divergence(
-            pe_local=pe,
-            pe_global=u,
-            n_samples=n_samples,
-            rng=rng,
+def get_pdf_vals(
+    X_local: pd.DataFrame,
+    X_global: pd.DataFrame,
+    hp_name: str,
+    search_space: Dict[str, Tuple],
+    categoricals: Dict[str, bool] = {},
+) -> Tuple[np.ndarray, np.ndarray]:
+    x_local = X_local[hp_name].to_numpy()
+    x_global = X_global[hp_name].to_numpy() if X_global is not None else None
+    n_choices = len(search_space[hp_name])
+    kwargs = {}
+    dx = np.arange(n_choices)
+    if categoricals.get(hp_name, False):
+        kwargs.update(top=1.0, n_choices=n_choices)
+        pe_local = CategoricalParzenEstimator(samples=x_local, **kwargs)
+        pe_global = (
+            CategoricalUniform(n_choices=n_choices)
+            if x_global is None
+            else CategoricalParzenEstimator(samples=x_global, **kwargs)
+        )
+    else:
+        kwargs.update(lb=0, ub=n_choices - 1, q=1, dtype=int)
+        pe_local = NumericalParzenEstimator(samples=x_local, compress=True, **kwargs)
+        pe_global = (
+            NumericalUniform(**kwargs)
+            if x_global is None
+            else NumericalParzenEstimator(samples=x_global, compress=True, **kwargs)
         )
 
-    return hpi_dict
+    return pe_local(dx), pe_global(dx)
 
 
-def local_hpi(
-    observations: Dict[str, np.ndarray],
-    bounds: Dict[str, Tuple[float, float]],
-    param_names: List[str],
-    obj_name: str,
-    gamma_local_top: float,
+def analyze(
+    X: pd.DataFrame,
+    F: np.ndarray,
+    search_space: Dict[str, Tuple],
     gamma_local: float,
-    n_samples: int = 100,
-    minimize: bool = True,
-    seed: Optional[int] = None,
+    gamma_global: float = 1.0,
+    categoricals: Dict[str, bool] = {},
 ) -> Dict[str, float]:
     """
-    Compute the global hyperparameter importance.
-
     Args:
-        observations (Dict[str, np.ndarray]):
-            Observations obtained by an HPO.
-            Objective function values must also be included.
-            observations[param name] = array of the observations in the param.
-        bounds (Dict[str, Tuple[float, float]]):
-            The lower/upper bounds of each param.
-            bounds[param name] = (lower bound of the param, upper bound of the param).
-        param_names (List[str]):
-            A list of hyperparameter names.
-        obj_name (str):
-            The name of the objective function.
-        gamma_local_top (float):
-            The quantile value that defines the local space.
-            For example, when gamma_local_top = 0.01 and gamma_local = 0.1,
-            we measure the hpi to obtain the top-0.01 quantile in the "global" space
-            from the top-0.1 local space.
-            We can also consider it as:
-                we measure the hpi to obtain the top-0.1 quantile in the "local" space.
+        X (pd.DataFrame):
+            The hyperparameter dataframe.
+            The hyperparameter values must be grid indices.
+            For example, if param1 takes (0.1, 0.3) among the space of (0.1, 0.2, 0.3),
+            then the corresponding grid indices will be (0, 2).
+        F (np.ndarray):
+            The performance metric (lower is better).
+            The order must match the indices of X.
+        search_space (Dict[str, Tuple]):
+            The search space of the target of analysis.
         gamma_local (float):
-            The quantile value that defines the target domain in the local space.
-        n_samples (int):
-            The number of samples used in Monte-Carlo method.
-        minimize (bool):
-            Whether the objective function is better when it is smaller.
-        seed (Optional[int]):
-            The seed for a random number generator.
+            The quantile for a local space.
+        gamma_global (float):
+            The quantile for a global space.
+        categoricals (Dict[str, bool]):
+            Whether the corresponding hyperparameter is categorical or not.
 
     Returns:
         hpi_dict (Dict[str, float]):
-            The hyperparameter importance for each param.
-            hpi_dict[param name] = the importance of this param in the local space.
+            The dict of HPI.
     """
-    assert 0 < gamma_local_top < gamma_local <= 1
-    sign = 2 * minimize - 1
-    loss_vals = observations[obj_name] * sign
-    rank = rankdata(loss_vals)
+    # NOTE: F must be "lower is better"
+    order = np.argsort(F)
+    hpi_dict = {}
+    hpi_sum = 0
+    X_local = X.iloc[order[: int(gamma_local * F.size)]]
+    X_global = (
+        X.iloc[order[: int(gamma_global * F.size)]] if gamma_global < 1.0 else None
+    )
 
-    rng = np.random.RandomState(seed)
-    N = loss_vals.size
-    local_space_mask = rank < N * gamma_local
-    top_in_local_space_mask = rank < N * gamma_local_top
-    hpi_dict: Dict[str, float] = {}
-    for param_name in param_names:
-        lb, ub = bounds[param_name]
-        params = observations[param_name]
-        pe_local = NumericalParzenEstimator(samples=params[local_space_mask], lb=lb, ub=ub)
-        pe_local_top = NumericalParzenEstimator(samples=params[top_in_local_space_mask], lb=lb, ub=ub)
-        hpi_dict[param_name] = perason_divergence(
-            pe_local=pe_local_top,
-            pe_global=pe_local,
-            n_samples=n_samples,
-            rng=rng,
+    for hp_name in X.columns:
+        pdf_local, pdf_global = get_pdf_vals(
+            X_local=X_local,
+            X_global=X_global,
+            hp_name=hp_name,
+            search_space=search_space,
+            categoricals=categoricals
         )
+        hpi_dict[hp_name] = pdf_global @ ((pdf_local / pdf_global - 1) ** 2)
+        hpi_sum += hpi_dict[hp_name]
+    else:
+        hpi_dict = {k: v / hpi_sum for k, v in hpi_dict.items()}
 
     return hpi_dict

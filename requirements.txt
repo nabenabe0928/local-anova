@@ -1,5 +1,5 @@
-numpy
 parzen-estimator
-scipy
+numpy
 jahs-bench
-optuna
+pandas
+ujson

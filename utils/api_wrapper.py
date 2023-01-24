@@ -18,7 +18,9 @@ class BenchmarkWrapper(Benchmark):
         save_dir: str = DATA_DIR,
         metrics: Optional[Iterable[str]] = ["valid-acc"][:],
     ):
-        super().__init__(task=task, download=download, save_dir=save_dir, metrics=metrics)
+        super().__init__(
+            task=task, download=download, save_dir=save_dir, metrics=metrics
+        )
 
     def __call__(
         self,
