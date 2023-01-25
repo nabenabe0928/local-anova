@@ -49,7 +49,7 @@ def save_results(dataset_name: str) -> None:
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("--dataset", choices=[TASK_NAMES], default="cifar10")
+    parser.add_argument("--dataset", choices=TASK_NAMES, default="cifar10")
     args = parser.parse_args()
 
     dataset_name = args.dataset
