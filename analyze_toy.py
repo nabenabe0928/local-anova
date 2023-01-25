@@ -4,7 +4,7 @@ import numpy as np
 
 import pandas as pd
 
-from anova import analyze
+from utils.anova import analyze
 
 
 LB, UB = -5, 5

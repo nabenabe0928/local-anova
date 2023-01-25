@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 import numpy as np
 import ujson as json
 
-from anova import analyze
+from utils.anova import analyze
 from utils.constants import CATEGORICALS, SEARCH_SPACE, TASK_NAMES
 from utils.index_to_config import convert_multiple
 
