@@ -30,8 +30,8 @@ Then run the following:
 
 For the citation, use the following format:
 ```
-@article{watanabe2023ctpe,
-  title={PED-ANOVA: Efficiently Quantifying Hyperparameter Importance in Arbitrary Subspaces},
+@article{watanabe2023ped,
+  title={{PED-ANOVA}: Efficiently Quantifying Hyperparameter Importance in Arbitrary Subspaces},
   author={S. Watanabe and A. Bansal and F. Hutter},
   journal={International Joint Conference on Artificial Intelligence},
   year={2023}
