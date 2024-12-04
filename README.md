@@ -1,3 +1,7 @@
+> [!IMPORTANT]
+> PED-ANOVA is now available at [Optuna](https://optuna.readthedocs.io/en/latest/reference/generated/optuna.importance.PedAnovaImportanceEvaluator.html).
+> Note that the top-performance quantile $\gamma$ in the Optuna version of PED-ANOVA is modified via `baseline_quantile`.
+
 ## PED-ANOVA
 
 This repository is based on the paper `PED-ANOVA: Efficiently Quantifying Hyperparameter Importance in Arbitrary Subspaces`.
